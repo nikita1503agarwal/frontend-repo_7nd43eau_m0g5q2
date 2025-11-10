@@ -47,15 +47,31 @@ function computeIdeaMetrics(idea, keywordsArr = []) {
   }
 }
 
+function normalizeHandles(text = '') {
+  return text
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+    .map(h => h.startsWith('@') ? h : `@${h}`)
+}
+
 function App() {
   const [niche, setNiche] = useState('motivasi')
   const [keywords, setKeywords] = useState('produktif, mindset, bisnis')
+
+  // Tambahan konteks sebelum "Buat Ide Shorts"
+  const [shortDesc, setShortDesc] = useState('Konten motivasi harian seputar produktivitas dan mindset bisnis untuk pemula.')
+  const [audienceAge, setAudienceAge] = useState('18-34')
+  const [audienceCountry, setAudienceCountry] = useState('Indonesia')
+  const [referencesText, setReferencesText] = useState('@aliabdaal, @nasdaily')
+
   const [ideas, setIdeas] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [copiedIndex, setCopiedIndex] = useState(null)
 
   const keywordsArr = useMemo(() => keywords.split(',').map(k => k.trim()).filter(Boolean), [keywords])
+  const referencesArr = useMemo(() => normalizeHandles(referencesText), [referencesText])
 
   const generateIdeas = async () => {
     setLoading(true)
@@ -67,7 +83,13 @@ function App() {
         body: JSON.stringify({
           niche,
           keywords: keywordsArr,
-          language: 'id'
+          language: 'id',
+          // Informasi tambahan (akan diabaikan backend saat ini, tetapi disimpan untuk pengembangan berikutnya)
+          context: {
+            description: shortDesc,
+            audience: { age: audienceAge, country: audienceCountry },
+            references: referencesArr,
+          }
         })
       })
       if (!res.ok) throw new Error('Gagal membuat ide')
@@ -95,6 +117,11 @@ function App() {
       `Deskripsi: ${idea.description}`,
       `Hashtag: ${(idea.hashtags || []).map(h => `#${h.replace(/^#/, '')}`).join(' ')}`,
       `Waktu Posting: ${idea.posting_time || '-'}`,
+      '',
+      'Konteks Kanal:',
+      `- Deskripsi singkat: ${shortDesc}`,
+      `- Target: Usia ${audienceAge}, Negara ${audienceCountry}`,
+      `- Referensi: ${referencesArr.join(', ') || '-'}`,
       '',
       'Ringkasan Kelayakan:',
       `- Hook kuat: ${metrics.hasStrongHook ? 'Ya' : 'Perbaiki (6–16 kata)'}`,
@@ -137,7 +164,54 @@ function App() {
               <input value={keywords} onChange={e => setKeywords(e.target.value)} className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/50" placeholder="pisahkan dengan koma" />
               <p className="text-xs text-gray-500 mt-1">Contoh: produktif, mindset, bisnis</p>
             </div>
-            <div className="md:col-span-3 flex flex-wrap items-center gap-3">
+
+            {/* Elemen tambahan untuk menguatkan niche & keyword */}
+            <div className="md:col-span-3">
+              <label className="block text-sm font-medium mb-1">Deskripsi Singkat</label>
+              <textarea
+                value={shortDesc}
+                onChange={e => setShortDesc(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                rows={3}
+                placeholder="Gambarkan tujuan channel dan gaya penyampaian dalam 1-2 kalimat"
+              />
+              <p className="text-xs text-gray-500 mt-1">Contoh: Konten edukasi singkat dengan contoh praktis dan storytelling ringan.</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Target Penonton (Usia)</label>
+              <input
+                value={audienceAge}
+                onChange={e => setAudienceAge(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                placeholder="mis. 18-34"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Target Penonton (Negara)</label>
+              <input
+                value={audienceCountry}
+                onChange={e => setAudienceCountry(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                placeholder="mis. Indonesia, Malaysia"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Referensi Creator (awali @, pisahkan koma)</label>
+              <input
+                value={referencesText}
+                onChange={e => setReferencesText(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                placeholder="@namacreator, @creatorlain"
+              />
+              <div className="mt-2 flex flex-wrap gap-2">
+                {referencesArr.map((h, i) => (
+                  <span key={i} className="text-xs bg-gray-100 px-2 py-1 rounded">{h}</span>
+                ))}
+              </div>
+            </div>
+
+            <div className="md:col-span-3 flex flex-wrap items-center gap-3 pt-1">
               <button onClick={generateIdeas} disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg disabled:opacity-60 transition">
                 {loading ? 'Menggenerasi...' : 'Buat Ide Shorts'}
               </button>
